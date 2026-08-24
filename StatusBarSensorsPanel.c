@@ -133,6 +133,21 @@ void StatusBarSensorsPanel_add(StatusBarSensorsPanel* this, const char* label, c
    StatusBarSensorsPanel_addConfigured(this, label, sensorId, true, false, false, false);
 }
 
+#if defined(HTOP_LINUX) && defined(HAVE_SENSORS_SENSORS_H)
+static bool StatusBarSensorsPanel_describeSensor(const Machine* host, size_t index, const char** id, char* name, size_t nameSize) {
+   const char* chip = NULL;
+   const char* label = NULL;
+   const char* feature = NULL;
+   HardwareSensorType type;
+
+   if (!Platform_getHardwareSensor(host, index, id, &chip, &label, &feature, &type, NULL) || !*id)
+      return false;
+
+   StatusBar_formatSensorName(name, nameSize, chip, label, feature, type);
+   return true;
+}
+#endif
+
 void StatusBarSensorsPanel_fill(StatusBarSensorsPanel* this) {
    Panel* super = &this->super;
    Panel_prune(super);
@@ -145,16 +160,10 @@ void StatusBarSensorsPanel_fill(StatusBarSensorsPanel* this) {
 #if defined(HTOP_LINUX) && defined(HAVE_SENSORS_SENSORS_H)
       for (size_t i = 0; i < count; i++) {
          const char* id = NULL;
-         const char* chip = NULL;
-         const char* label = NULL;
-         const char* feature = NULL;
-         HardwareSensorType type;
-
-         if (!Platform_getHardwareSensor(this->host, i, &id, &chip, &label, &feature, &type, NULL) || !id)
+         char name[64];
+         if (!StatusBarSensorsPanel_describeSensor(this->host, i, &id, name, sizeof(name)))
             continue;
 
-         char name[64];
-         StatusBar_formatSensorName(name, sizeof(name), chip, label, feature, type);
          StatusBarSensorsPanel_add(this, name, id);
       }
 #endif
@@ -168,17 +177,11 @@ void StatusBarSensorsPanel_fill(StatusBarSensorsPanel* this) {
 #if defined(HTOP_LINUX) && defined(HAVE_SENSORS_SENSORS_H)
       for (size_t i = 0; i < count; i++) {
          const char* id = NULL;
-         const char* chip = NULL;
-         const char* label = NULL;
-         const char* feature = NULL;
-         HardwareSensorType type;
-
-         if (!Platform_getHardwareSensor(this->host, i, &id, &chip, &label, &feature, &type, NULL) || !id)
+         char name[64];
+         if (!StatusBarSensorsPanel_describeSensor(this->host, i, &id, name, sizeof(name)))
             continue;
 
          if (String_eq(id, config->id)) {
-            char name[64];
-            StatusBar_formatSensorName(name, sizeof(name), chip, label, feature, type);
             StatusBarSensorsPanel_addConfigured(this, name, id, config->enabled, config->showMin, config->showAverage, config->showMax);
             found = true;
             break;
@@ -196,18 +199,12 @@ void StatusBarSensorsPanel_fill(StatusBarSensorsPanel* this) {
 #if defined(HTOP_LINUX) && defined(HAVE_SENSORS_SENSORS_H)
    for (size_t i = 0; i < count; i++) {
       const char* id = NULL;
-      const char* chip = NULL;
-      const char* label = NULL;
-      const char* feature = NULL;
-      HardwareSensorType type;
-
-      if (!Platform_getHardwareSensor(this->host, i, &id, &chip, &label, &feature, &type, NULL) || !id)
+      char name[64];
+      if (!StatusBarSensorsPanel_describeSensor(this->host, i, &id, name, sizeof(name)))
          continue;
       if (StatusBarSensorsPanel_contains(this, id))
          continue;
 
-      char name[64];
-      StatusBar_formatSensorName(name, sizeof(name), chip, label, feature, type);
       StatusBarSensorsPanel_addConfigured(this, name, id, false, false, false, false);
    }
 #endif

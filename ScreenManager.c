@@ -272,7 +272,8 @@ void ScreenManager_run(ScreenManager* this, Panel** lastFocus, int* lastKey, con
    this->name = name;
 
    while (!quit) {
-      int statusBarY2 = ScreenManager_shouldShowStatusBar(this) ? -2 : -1;
+      const bool showStatusBar = ScreenManager_shouldShowStatusBar(this);
+      int statusBarY2 = showStatusBar ? -2 : -1;
       if (this->y2 != statusBarY2) {
          this->y2 = statusBarY2;
          ScreenManager_resize(this);
@@ -284,7 +285,7 @@ void ScreenManager_run(ScreenManager* this, Panel** lastFocus, int* lastKey, con
 
       if (redraw || force_redraw) {
          ScreenManager_drawPanels(this, focus, force_redraw);
-         if (ScreenManager_shouldShowStatusBar(this))
+         if (showStatusBar)
             StatusBar_draw(this->host, State_hideFunctionBar(this->state) ? LINES - 1 : LINES - 2);
          force_redraw = false;
          if (this->host->iterationsRemaining != -1) {
