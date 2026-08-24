@@ -306,7 +306,10 @@ void ScreenManager_run(ScreenManager* this, Panel** lastFocus, int* lastKey, con
          MEVENT mevent;
          int ok = getmouse(&mevent);
          if (ok == OK) {
-            if (mevent.bstate & BUTTON1_RELEASED) {
+            const int statusBarY = State_hideFunctionBar(this->state) ? LINES - 1 : LINES - 2;
+            if (showStatusBar && mevent.y == statusBarY) {
+               /* The status bar is display-only; consume mouse events on its row. */
+            } else if (mevent.bstate & BUTTON1_RELEASED) {
                if (mevent.y == LINES - 1) {
                   ch = FunctionBar_synthesizeEvent(panelFocus->currentBar, mevent.x);
                   /* When the panel is in cursor-input mode and the click landed past
