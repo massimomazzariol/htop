@@ -42,9 +42,11 @@ void StatusBar_formatSensorName(char* buffer, size_t size, const char* chip, con
          *p = ' ';
    }
 
+   static const char thermalSuffix[] = " thermal";
+   const size_t thermalSuffixLen = sizeof(thermalSuffix) - 1;
    size_t len = strlen(buffer);
-   if (len > 8 && String_eq(buffer + len - 8, " thermal"))
-      buffer[len - 8] = '\0';
+   if (len > thermalSuffixLen && String_eq(buffer + len - thermalSuffixLen, thermalSuffix))
+      buffer[len - thermalSuffixLen] = '\0';
 
    for (char* token = buffer; *token;) {
       while (*token == ' ')
@@ -56,6 +58,7 @@ void StatusBar_formatSensorName(char* buffer, size_t size, const char* chip, con
       while (*end && *end != ' ')
          end++;
 
+      // Short tokens are typically hardware abbreviations such as CPU, GPU, or PCH.
       if ((size_t)(end - token) <= 3) {
          for (char* p = token; p < end; p++) {
             if (*p >= 'a' && *p <= 'z')
@@ -79,6 +82,9 @@ static void StatusBar_appendSensorValue(char* buffer, size_t size, HardwareSenso
       break;
    case SENSOR_FAN:
       xSnprintf(buffer + used, size - used, " %s%.0f RPM", label, value);
+      break;
+   default:
+      xSnprintf(buffer + used, size - used, " %s%.0f", label, value);
       break;
    }
 }

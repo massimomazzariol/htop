@@ -23,7 +23,6 @@ static void StatusBarSensorOptionsPanel_fill(StatusBarSensorOptionsPanel* this) 
    int selected = Panel_getSelectedIndex(super);
 
    Panel_prune(super);
-   Panel_setHeader(super, "Sensor options");
 
    if (!this->sensor)
       return;
