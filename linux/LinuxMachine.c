@@ -28,7 +28,7 @@ in the source distribution for its full text.
 #include "ProcessTable.h"
 #include "Row.h"
 #include "Settings.h"
-#include "StatusBar.h"
+#include "HardwareSensorMeter.h"
 #include "UsersTable.h"
 
 #include "linux/Compat.h"

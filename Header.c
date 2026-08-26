@@ -25,7 +25,7 @@ in the source distribution for its full text.
 #include "Platform.h"
 #include "ProvideCurses.h"
 #include "Settings.h"
-#include "StatusBar.h"
+#include "HardwareSensorMeter.h"
 #include "XUtils.h"
 
 

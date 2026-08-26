@@ -50,6 +50,7 @@ myhtopsources = \
 	EnvScreen.c \
 	FileDescriptorMeter.c \
 	FunctionBar.c \
+	HardwareSensorMeter.c \
 	Hashtable.c \
 	Header.c \
 	HeaderOptionsPanel.c \
@@ -121,6 +122,7 @@ myhtopheaders = \
 	FunctionBar.h \
 	GPUMeter.h \
 	HardwareSensor.h \
+	HardwareSensorMeter.h \
 	Hashtable.h \
 	Header.h \
 	HeaderLayout.h \

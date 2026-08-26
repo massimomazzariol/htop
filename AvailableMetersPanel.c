@@ -16,6 +16,7 @@ in the source distribution for its full text.
 #include "CPUMeter.h"
 #include "DynamicMeter.h"
 #include "FunctionBar.h"
+#include "HardwareSensorMeter.h"
 #include "Hashtable.h"
 #include "Header.h"
 #include "ListItem.h"
