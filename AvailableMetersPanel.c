@@ -27,7 +27,7 @@ in the source distribution for its full text.
 #include "Platform.h"
 #include "ProvideCurses.h"
 #include "Settings.h"
-#include "StatusBar.h"
+#include "HardwareSensor.h"
 #include "XUtils.h"
 
 
@@ -154,7 +154,7 @@ static void AvailableMetersPanel_addHardwareSensorMeters(Panel* super, const Mac
          continue;
 
       char name[64];
-      StatusBar_formatSensorName(name, sizeof(name), chip, label, feature, type);
+      HardwareSensor_formatName(name, sizeof(name), chip, label, feature, type);
 
       unsigned int param = (unsigned int)i + 1U;
       unsigned int identifier = (offset << 16) | param;

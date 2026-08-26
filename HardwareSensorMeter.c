@@ -17,7 +17,7 @@ in the source distribution for its full text.
 #include "Platform.h"
 #include "RichString.h"
 #include "Settings.h"
-#include "StatusBar.h"
+#include "HardwareSensor.h"
 #include "XUtils.h"
 
 
@@ -40,7 +40,7 @@ static void HardwareSensorMeter_init(Meter* this) {
 
       if (Platform_getHardwareSensor(this->host, index, NULL, &chip, &label, &feature, &type, NULL)) {
          char name[64];
-         StatusBar_formatSensorName(name, sizeof(name), chip, label, feature, type);
+         HardwareSensor_formatName(name, sizeof(name), chip, label, feature, type);
 
          size_t maxNameLength = strlen(name);
          size_t count = Platform_getHardwareSensorCount(this->host);
@@ -57,7 +57,7 @@ static void HardwareSensorMeter_init(Meter* this) {
                continue;
 
             char otherName[64];
-            StatusBar_formatSensorName(otherName, sizeof(otherName),
+            HardwareSensor_formatName(otherName, sizeof(otherName),
                                        otherChip, otherLabel, otherFeature, otherType);
 
             maxNameLength = MAXIMUM(maxNameLength, strlen(otherName));
@@ -96,7 +96,7 @@ static void HardwareSensorMeter_getUiName(const Meter* this, char* name, size_t 
       HardwareSensorType type;
 
       if (Platform_getHardwareSensor(this->host, index, NULL, &chip, &label, &feature, &type, NULL)) {
-         StatusBar_formatSensorName(name, length, chip, label, feature, type);
+         HardwareSensor_formatName(name, length, chip, label, feature, type);
          return;
       }
    }

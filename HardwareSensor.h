@@ -6,6 +6,7 @@ Released under the GNU GPLv2+, see the COPYING file
 in the source distribution for its full text.
 */
 
+#include <stddef.h>
 #include <stdint.h>
 
 
@@ -26,5 +27,11 @@ typedef struct HardwareSensor_ {
    double max;
    uint64_t sampleCount;
 } HardwareSensor;
+
+void HardwareSensor_formatName(char* buffer, size_t size,
+                               const char* chip,
+                               const char* label,
+                               const char* feature,
+                               HardwareSensorType type);
 
 #endif

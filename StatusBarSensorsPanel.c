@@ -16,7 +16,7 @@ in the source distribution for its full text.
 #include "Platform.h"
 #include "ProvideCurses.h"
 #include "RichString.h"
-#include "StatusBar.h"
+#include "HardwareSensor.h"
 #include "StatusBarSensorOptionsPanel.h"
 #include "XUtils.h"
 
@@ -142,7 +142,7 @@ static bool StatusBarSensorsPanel_describeSensor(const Machine* host, size_t ind
    if (!Platform_getHardwareSensor(host, index, id, &chip, &label, &feature, &type, NULL) || !*id)
       return false;
 
-   StatusBar_formatSensorName(name, nameSize, chip, label, feature, type);
+   HardwareSensor_formatName(name, nameSize, chip, label, feature, type);
    return true;
 }
 #endif

@@ -50,6 +50,7 @@ myhtopsources = \
 	EnvScreen.c \
 	FileDescriptorMeter.c \
 	FunctionBar.c \
+	HardwareSensor.c \
 	HardwareSensorMeter.c \
 	Hashtable.c \
 	Header.c \
