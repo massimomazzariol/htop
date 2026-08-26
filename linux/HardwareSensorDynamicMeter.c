@@ -155,9 +155,11 @@ static size_t HardwareSensorDynamicMeter_formatValue(
    xSnprintf(number, sizeof(number), "%.0f", value);
 
    switch (type) {
-      case SENSOR_TEMPERATURE:
+      case SENSOR_TEMPERATURE: {
+         const size_t degreeWidth = CRT_degreeSign[0] ? 1 : 0;
          xSnprintf(buffer, size, "%s%s%c", number, CRT_degreeSign, temperatureUnit);
-         return strlen(number) + 2;
+         return strlen(number) + degreeWidth + 1;
+      }
 
       case SENSOR_FAN:
          xSnprintf(buffer, size, "%s RPM", number);
@@ -275,6 +277,20 @@ static void HardwareSensorDynamicMeter_appendPadding(
    if (count > 0)
       RichString_appendChr(out, CRT_colors[METER_TEXT], ' ', (int)count);
 }
+
+static void HardwareSensorDynamicMeter_appendSeparator(
+   RichString* out) {
+
+#ifdef HAVE_LIBNCURSESW
+   if (CRT_utf8) {
+      RichString_appendWide(out, CRT_colors[METER_TEXT], " │ ");
+      return;
+   }
+#endif
+
+   RichString_appendAscii(out, CRT_colors[METER_TEXT], " | ");
+}
+
 
 static void HardwareSensorDynamicMeter_appendAlignedValue(
    RichString* out,
@@ -435,7 +451,7 @@ void HardwareSensorDynamicMeter_display(const Meter* meter, RichString* out) {
       out, sensor->type, values[0],
       temperatureUnit, widths[0], METER_VALUE);
 
-   RichString_appendWide(out, CRT_colors[METER_TEXT], " │ ");
+   HardwareSensorDynamicMeter_appendSeparator(out);
 
    RichString_appendAscii(out, CRT_colors[METER_TEXT], "min ");
    HardwareSensorDynamicMeter_appendAlignedValue(
