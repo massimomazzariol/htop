@@ -25,6 +25,7 @@ in the source distribution for its full text.
 #include "Platform.h"
 #include "ProvideCurses.h"
 #include "Settings.h"
+#include "StatusBar.h"
 #include "XUtils.h"
 
 
@@ -159,7 +160,9 @@ void Header_writeBackToSettings(const Header* this) {
          if (meter->param && As_Meter(meter) == &DynamicMeter_class) {
             const char* dynamic = DynamicMeter_lookup(settings->dynamicMeters, meter->param);
             xAsprintf(&name, "%s(%s)", As_Meter(meter)->name, dynamic);
-         } else if (meter->param && As_Meter(meter) == &CPUMeter_class) {
+         } else if (meter->param &&
+                    (As_Meter(meter) == &CPUMeter_class ||
+                     As_Meter(meter) == &HardwareSensorMeter_class)) {
             xAsprintf(&name, "%s(%u)", As_Meter(meter)->name, meter->param);
          } else {
             xAsprintf(&name, "%s", As_Meter(meter)->name);

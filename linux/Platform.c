@@ -44,6 +44,7 @@ in the source distribution for its full text.
 #include "PressureStallMeter.h"
 #include "ProvideCurses.h"
 #include "Settings.h"
+#include "StatusBar.h"
 #include "SwapMeter.h"
 #include "SysArchMeter.h"
 #include "TasksMeter.h"
@@ -245,6 +246,9 @@ const MeterClass* const Platform_meterTypes[] = {
    &SecondsUptimeMeter_class,
    &BatteryMeter_class,
    &HostnameMeter_class,
+#ifdef HAVE_SENSORS_SENSORS_H
+   &HardwareSensorMeter_class,
+#endif
    &AllCPUsMeter_class,
    &AllCPUs2Meter_class,
    &AllCPUs4Meter_class,

@@ -26,6 +26,7 @@ in the source distribution for its full text.
 #include "Platform.h"
 #include "ProvideCurses.h"
 #include "Settings.h"
+#include "StatusBar.h"
 #include "XUtils.h"
 
 
@@ -138,6 +139,30 @@ static void AvailableMetersPanel_addDynamicMeters(Panel* super, const Settings* 
    Hashtable_foreach(dynamicMeters, AvailableMetersPanel_addDynamicMeter, &iter);
 }
 
+#if defined(HTOP_LINUX) && defined(HAVE_SENSORS_SENSORS_H)
+static void AvailableMetersPanel_addHardwareSensorMeters(Panel* super, const Machine* host, unsigned int offset) {
+   size_t count = Platform_getHardwareSensorCount(host);
+
+   for (size_t i = 0; i < count && i < 0xffffU; i++) {
+      const char* chip = NULL;
+      const char* label = NULL;
+      const char* feature = NULL;
+      HardwareSensorType type;
+
+      if (!Platform_getHardwareSensor(host, i, NULL, &chip, &label, &feature, &type, NULL))
+         continue;
+
+      char name[64];
+      StatusBar_formatSensorName(name, sizeof(name), chip, label, feature, type);
+
+      unsigned int param = (unsigned int)i + 1U;
+      unsigned int identifier = (offset << 16) | param;
+
+      Panel_add(super, (Object*) ListItem_new(name, identifier));
+   }
+}
+#endif
+
 // Handle remaining Platform Meter entries in the AvailableMetersPanel
 static void AvailableMetersPanel_addPlatformMeter(Panel* super, const MeterClass* type, unsigned int offset) {
    const char* label = type->description ? type->description : type->uiName;
@@ -167,6 +192,10 @@ AvailableMetersPanel* AvailableMetersPanel_new(Machine* host, Header* header, si
       assert(type != &CPUMeter_class);
       if (type == &DynamicMeter_class)
          AvailableMetersPanel_addDynamicMeters(super, host->settings, i);
+#if defined(HTOP_LINUX) && defined(HAVE_SENSORS_SENSORS_H)
+      else if (type == &HardwareSensorMeter_class)
+         AvailableMetersPanel_addHardwareSensorMeters(super, host, i);
+#endif
       else
          AvailableMetersPanel_addPlatformMeter(super, type, i);
    }
