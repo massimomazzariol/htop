@@ -10,7 +10,12 @@ in the source distribution for its full text.
 
 #include "HardwareSensor.h"
 #include "Machine.h"
+#include "Meter.h"
 
+
+extern const MeterClass HardwareSensorsMeter_class;
+
+bool HardwareSensorsMeter_active(void);
 
 void StatusBar_formatSensorName(char* buffer, size_t size, const char* chip, const char* label, const char* feature, HardwareSensorType type);
 void StatusBar_draw(const Machine* host, int y);

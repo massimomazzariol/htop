@@ -28,6 +28,7 @@ in the source distribution for its full text.
 #include "ProcessTable.h"
 #include "Row.h"
 #include "Settings.h"
+#include "StatusBar.h"
 #include "UsersTable.h"
 
 #include "linux/Compat.h"
@@ -880,7 +881,8 @@ void Machine_scan(Machine* super) {
       LinuxMachine_scanCPUFrequency(this);
 
    #ifdef HAVE_SENSORS_SENSORS_H
-   if (settings->showStatusBar && !LibSensors_updateHardwareSensors(this->sensors, this->sensorCount)) {
+   if ((settings->showStatusBar || HardwareSensorsMeter_active()) &&
+       !LibSensors_updateHardwareSensors(this->sensors, this->sensorCount)) {
       LibSensors_freeHardwareSensors(this->sensors, this->sensorCount);
       this->sensors = LibSensors_getHardwareSensors(&this->sensorCount);
    }

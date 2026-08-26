@@ -8,6 +8,7 @@ in the source distribution for its full text.
 
 #include "StatusBar.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -146,6 +147,146 @@ static int StatusBar_drawSensor(const Machine* host, size_t index, bool showMin,
    return x + columns;
 }
 #endif
+
+
+static size_t hardwareSensorsMeterActive;
+
+bool HardwareSensorsMeter_active(void) {
+   return hardwareSensorsMeterActive > 0;
+}
+
+static void HardwareSensorsMeter_init(Meter* this ATTR_UNUSED) {
+   hardwareSensorsMeterActive++;
+}
+
+static void HardwareSensorsMeter_done(Meter* this ATTR_UNUSED) {
+   assert(hardwareSensorsMeterActive > 0);
+   hardwareSensorsMeterActive--;
+}
+
+#if defined(HTOP_LINUX) && defined(HAVE_SENSORS_SENSORS_H)
+static bool HardwareSensorsMeter_appendSensor(const Machine* host, size_t index, bool showMin, bool showAverage, bool showMax, char* buffer, size_t size) {
+   const char* chip = NULL;
+   const char* label = NULL;
+   const char* feature = NULL;
+   HardwareSensorType type;
+   double current;
+   double min;
+   double average;
+   double max;
+
+   if (!Platform_getHardwareSensor(host, index, NULL, &chip, &label, &feature, &type, &current))
+      return false;
+
+   min = current;
+   average = current;
+   max = current;
+   Platform_getHardwareSensorStats(host, index, &min, &average, &max);
+
+   char name[64];
+   StatusBar_formatSensorName(name, sizeof(name), chip, label, feature, type);
+
+   char temperatureUnit = 'C';
+   if (type == SENSOR_TEMPERATURE) {
+#ifdef BUILD_WITH_CPU_TEMP
+      if (host->settings->degreeFahrenheit) {
+         current = current * 9 / 5 + 32;
+         min = min * 9 / 5 + 32;
+         average = average * 9 / 5 + 32;
+         max = max * 9 / 5 + 32;
+         temperatureUnit = 'F';
+      }
+#endif
+   }
+
+   size_t used = strlen(buffer);
+   if (used >= size - 1)
+      return false;
+
+   xSnprintf(buffer + used, size - used, "%s%s", used ? " | " : "", name);
+
+   StatusBar_appendSensorValue(buffer, size, type, "", current, temperatureUnit);
+   if (showMin)
+      StatusBar_appendSensorValue(buffer, size, type, "min ", min, temperatureUnit);
+   if (showAverage)
+      StatusBar_appendSensorValue(buffer, size, type, "avg ", average, temperatureUnit);
+   if (showMax)
+      StatusBar_appendSensorValue(buffer, size, type, "max ", max, temperatureUnit);
+
+   return true;
+}
+#endif
+
+static void HardwareSensorsMeter_updateValues(Meter* this) {
+   this->txtBuffer[0] = '\0';
+   this->curItems = 0;
+
+#if defined(HTOP_LINUX) && defined(HAVE_SENSORS_SENSORS_H)
+   const Machine* host = this->host;
+   const Settings* settings = host->settings;
+   size_t count = Platform_getHardwareSensorCount(host);
+   size_t added = 0;
+
+   if (!settings->statusBarSensorsConfigured) {
+      for (size_t i = 0; i < count; i++) {
+         if (HardwareSensorsMeter_appendSensor(host, i, false, false, false,
+                                               this->txtBuffer, sizeof(this->txtBuffer)))
+            added++;
+      }
+   } else {
+      for (size_t selection = 0; selection < settings->statusBarSensorCount; selection++) {
+         const StatusBarSensorConfig* config = &settings->statusBarSensors[selection];
+         if (!config->enabled)
+            continue;
+
+         for (size_t i = 0; i < count; i++) {
+            const char* id = NULL;
+            if (!Platform_getHardwareSensor(host, i, &id, NULL, NULL, NULL, NULL, NULL))
+               continue;
+
+            if (id && String_eq(id, config->id)) {
+               if (HardwareSensorsMeter_appendSensor(host, i,
+                                                     config->showMin,
+                                                     config->showAverage,
+                                                     config->showMax,
+                                                     this->txtBuffer,
+                                                     sizeof(this->txtBuffer)))
+                  added++;
+               break;
+            }
+         }
+      }
+   }
+
+   if (!added)
+      xSnprintf(this->txtBuffer, sizeof(this->txtBuffer), "none selected");
+#else
+   xSnprintf(this->txtBuffer, sizeof(this->txtBuffer), "unavailable");
+#endif
+}
+
+static const int HardwareSensorsMeter_attributes[] = {
+   METER_VALUE
+};
+
+const MeterClass HardwareSensorsMeter_class = {
+   .super = {
+      .extends = Class(Meter),
+      .delete = Meter_delete
+   },
+   .init = HardwareSensorsMeter_init,
+   .done = HardwareSensorsMeter_done,
+   .updateValues = HardwareSensorsMeter_updateValues,
+   .defaultMode = TEXT_METERMODE,
+   .supportedModes = (1U << TEXT_METERMODE),
+   .maxItems = 1,
+   .isPercentChart = false,
+   .total = 100.0,
+   .attributes = HardwareSensorsMeter_attributes,
+   .name = "HardwareSensors",
+   .uiName = "Hardware sensors (prototype)",
+   .caption = "Sensors: "
+};
 
 void StatusBar_draw(const Machine* host, int y) {
    if (y < 0)
