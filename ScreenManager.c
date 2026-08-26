@@ -273,7 +273,7 @@ void ScreenManager_run(ScreenManager* this, Panel** lastFocus, int* lastKey, con
 
    while (!quit) {
       const bool showStatusBar = ScreenManager_shouldShowStatusBar(this);
-      int statusBarY2 = showStatusBar ? -2 : -1;
+      int statusBarY2 = showStatusBar && !State_hideFunctionBar(this->state) ? -2 : -1;
       if (this->y2 != statusBarY2) {
          this->y2 = statusBarY2;
          ScreenManager_resize(this);
