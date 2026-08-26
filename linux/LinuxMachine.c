@@ -904,8 +904,7 @@ void Machine_scan(Machine* super) {
    bool dynamicSensorMeterRequested =
       HardwareSensorDynamicMeter_consumeSamplingRequest();
 
-   if (settings->showStatusBar ||
-       dynamicSensorMeterRequested)
+   if (dynamicSensorMeterRequested)
       LinuxMachine_updateHardwareSensors(this);
 
    if (settings->showCPUTemperature)

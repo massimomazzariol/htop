@@ -83,9 +83,6 @@ myhtopsources = \
 	ScreenTabsPanel.c \
 	Settings.c \
 	SignalsPanel.c \
-	StatusBar.c \
-	StatusBarSensorOptionsPanel.c \
-	StatusBarSensorsPanel.c \
 	SwapMeter.c \
 	SysArchMeter.c \
 	Table.c \
@@ -160,10 +157,6 @@ myhtopheaders = \
 	ScreenTabsPanel.h \
 	Settings.h \
 	SignalsPanel.h \
-	StatusBar.h \
-	StatusBarConfig.h \
-	StatusBarSensorOptionsPanel.h \
-	StatusBarSensorsPanel.h \
 	SwapMeter.h \
 	SysArchMeter.h \
 	Table.h \
