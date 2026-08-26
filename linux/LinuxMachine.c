@@ -28,7 +28,6 @@ in the source distribution for its full text.
 #include "ProcessTable.h"
 #include "Row.h"
 #include "Settings.h"
-#include "HardwareSensorMeter.h"
 #include "UsersTable.h"
 
 #include "linux/Compat.h"
@@ -906,7 +905,6 @@ void Machine_scan(Machine* super) {
       HardwareSensorDynamicMeter_consumeSamplingRequest();
 
    if (settings->showStatusBar ||
-       HardwareSensorMeter_active() ||
        dynamicSensorMeterRequested)
       LinuxMachine_updateHardwareSensors(this);
 
