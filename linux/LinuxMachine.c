@@ -862,6 +862,26 @@ static void LinuxMachine_scanCPUFrequency(LinuxMachine* this) {
    scanCPUFrequencyFromCPUinfo(this);
 }
 
+#ifdef HAVE_SENSORS_SENSORS_H
+void LinuxMachine_updateHardwareSensors(LinuxMachine* this) {
+   Machine* super = &this->super;
+
+   if (this->hardwareSensorLastUpdateValid &&
+       this->hardwareSensorLastUpdateMs == super->monotonicMs)
+      return;
+
+   this->hardwareSensorLastUpdateMs = super->monotonicMs;
+   this->hardwareSensorLastUpdateValid = true;
+
+   if (LibSensors_updateHardwareSensors(this->sensors, this->sensorCount))
+      return;
+
+   LibSensors_freeHardwareSensors(this->sensors, this->sensorCount);
+   this->sensors = LibSensors_getHardwareSensors(&this->sensorCount);
+}
+#endif
+
+
 void Machine_scan(Machine* super) {
    LinuxMachine* this = (LinuxMachine*) super;
 
@@ -881,11 +901,8 @@ void Machine_scan(Machine* super) {
       LinuxMachine_scanCPUFrequency(this);
 
    #ifdef HAVE_SENSORS_SENSORS_H
-   if ((settings->showStatusBar || HardwareSensorMeter_active()) &&
-       !LibSensors_updateHardwareSensors(this->sensors, this->sensorCount)) {
-      LibSensors_freeHardwareSensors(this->sensors, this->sensorCount);
-      this->sensors = LibSensors_getHardwareSensors(&this->sensorCount);
-   }
+   if (settings->showStatusBar || HardwareSensorMeter_active())
+      LinuxMachine_updateHardwareSensors(this);
 
    if (settings->showCPUTemperature)
       LibSensors_getCPUTemperatures(this->cpuData, super->existingCPUs, super->activeCPUs);

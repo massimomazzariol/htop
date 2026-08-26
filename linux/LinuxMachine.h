@@ -91,6 +91,8 @@ typedef struct LinuxMachine_ {
 #ifdef HAVE_SENSORS_SENSORS_H
    HardwareSensor* sensors;
    size_t sensorCount;
+   uint64_t hardwareSensorLastUpdateMs;
+   bool hardwareSensorLastUpdateValid;
 #endif
 
    int maxPhysicalID;
@@ -106,6 +108,10 @@ typedef struct LinuxMachine_ {
    ZramStats zram;
    ZswapStats zswap;
 } LinuxMachine;
+
+#ifdef HAVE_SENSORS_SENSORS_H
+void LinuxMachine_updateHardwareSensors(LinuxMachine* this);
+#endif
 
 #ifndef PROCDIR
 #define PROCDIR "/proc"
