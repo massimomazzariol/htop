@@ -33,6 +33,9 @@ typedef struct HardwareSensorDynamicMeter_ {
 } HardwareSensorDynamicMeter;
 
 
+static bool hardwareSensorSamplingRequested = false;
+
+
 static uint64_t HardwareSensorDynamicMeter_hash64(const char* value) {
    uint64_t hash = UINT64_C(14695981039346656037);
 
@@ -376,15 +379,18 @@ void HardwareSensorDynamicMeters_done(Hashtable* table) {
 
 void HardwareSensorDynamicMeter_init(Meter* meter) {
    (void)meter;
+   hardwareSensorSamplingRequested = true;
 }
 
-/*
- * Sampling is still driven by the existing status-bar / prototype meter path
- * during this migration step. The next refactor will make DynamicMeters drive
- * sampling directly before the old HardwareSensorMeter is removed.
- */
 void HardwareSensorDynamicMeter_updateValues(Meter* meter) {
+   hardwareSensorSamplingRequested = true;
    meter->txtBuffer[0] = '\0';
+}
+
+bool HardwareSensorDynamicMeter_consumeSamplingRequest(void) {
+   bool requested = hardwareSensorSamplingRequested;
+   hardwareSensorSamplingRequested = false;
+   return requested;
 }
 
 void HardwareSensorDynamicMeter_display(const Meter* meter, RichString* out) {

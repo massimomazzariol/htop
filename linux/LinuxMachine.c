@@ -35,6 +35,7 @@ in the source distribution for its full text.
 #include "linux/Platform.h" // needed for GNU/hurd to get PATH_MAX  // IWYU pragma: keep
 
 #ifdef HAVE_SENSORS_SENSORS_H
+#include "HardwareSensorDynamicMeter.h"
 #include "LibSensors.h"
 #endif
 
@@ -901,7 +902,12 @@ void Machine_scan(Machine* super) {
       LinuxMachine_scanCPUFrequency(this);
 
    #ifdef HAVE_SENSORS_SENSORS_H
-   if (settings->showStatusBar || HardwareSensorMeter_active())
+   bool dynamicSensorMeterRequested =
+      HardwareSensorDynamicMeter_consumeSamplingRequest();
+
+   if (settings->showStatusBar ||
+       HardwareSensorMeter_active() ||
+       dynamicSensorMeterRequested)
       LinuxMachine_updateHardwareSensors(this);
 
    if (settings->showCPUTemperature)

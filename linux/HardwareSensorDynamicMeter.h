@@ -19,6 +19,8 @@ void HardwareSensorDynamicMeter_init(Meter* meter);
 
 void HardwareSensorDynamicMeter_updateValues(Meter* meter);
 
+bool HardwareSensorDynamicMeter_consumeSamplingRequest(void);
+
 void HardwareSensorDynamicMeter_display(const Meter* meter, RichString* out);
 
 #endif
