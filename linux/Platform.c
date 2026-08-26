@@ -27,6 +27,7 @@ in the source distribution for its full text.
 #include "CPUMeter.h"
 #include "DateTimeMeter.h"
 #include "DiskIOMeter.h"
+#include "DynamicMeter.h"
 #include "FileDescriptorMeter.h"
 #include "GPUMeter.h"
 #include "HostnameMeter.h"
@@ -71,6 +72,7 @@ in the source distribution for its full text.
 
 #ifdef HAVE_SENSORS_SENSORS_H
 #include "LibSensors.h"
+#include "linux/HardwareSensorDynamicMeter.h"
 #endif
 
 #ifndef O_PATH
@@ -248,6 +250,7 @@ const MeterClass* const Platform_meterTypes[] = {
    &HostnameMeter_class,
 #ifdef HAVE_SENSORS_SENSORS_H
    &HardwareSensorMeter_class,
+   &DynamicMeter_class,
 #endif
    &AllCPUsMeter_class,
    &AllCPUs2Meter_class,
@@ -1179,6 +1182,26 @@ bool Platform_getHardwareSensorStats(const Machine* host, size_t index, double* 
       *max = sensor->max;
 
    return true;
+}
+
+Hashtable* Platform_dynamicMeters(void) {
+   return HardwareSensorDynamicMeters_new();
+}
+
+void Platform_dynamicMetersDone(Hashtable* table) {
+   HardwareSensorDynamicMeters_done(table);
+}
+
+void Platform_dynamicMeterInit(Meter* meter) {
+   HardwareSensorDynamicMeter_init(meter);
+}
+
+void Platform_dynamicMeterUpdateValues(Meter* meter) {
+   HardwareSensorDynamicMeter_updateValues(meter);
+}
+
+void Platform_dynamicMeterDisplay(const Meter* meter, RichString* out) {
+   HardwareSensorDynamicMeter_display(meter, out);
 }
 #endif
 

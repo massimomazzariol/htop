@@ -132,6 +132,17 @@ static inline void Platform_gettime_monotonic(uint64_t* msec) {
    Generic_gettime_monotonic(msec);
 }
 
+#ifdef HAVE_SENSORS_SENSORS_H
+Hashtable* Platform_dynamicMeters(void);
+
+void Platform_dynamicMetersDone(Hashtable* table);
+
+void Platform_dynamicMeterInit(Meter* meter);
+
+void Platform_dynamicMeterUpdateValues(Meter* meter);
+
+void Platform_dynamicMeterDisplay(const Meter* meter, RichString* out);
+#else
 static inline Hashtable* Platform_dynamicMeters(void) {
    return NULL;
 }
@@ -143,6 +154,7 @@ static inline void Platform_dynamicMeterInit(ATTR_UNUSED Meter* meter) { }
 static inline void Platform_dynamicMeterUpdateValues(ATTR_UNUSED Meter* meter) { }
 
 static inline void Platform_dynamicMeterDisplay(ATTR_UNUSED const Meter* meter, ATTR_UNUSED RichString* out) { }
+#endif
 
 static inline Hashtable* Platform_dynamicColumns(void) {
    return NULL;
