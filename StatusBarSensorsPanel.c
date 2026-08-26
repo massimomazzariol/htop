@@ -77,22 +77,14 @@ static void StatusBarSensorsPanel_cancelMoving(StatusBarSensorsPanel* this) {
 void StatusBarSensorsPanel_update(StatusBarSensorsPanel* this) {
    Panel* super = &this->super;
    int size = Panel_size(super);
-
-   for (size_t i = 0; i < this->settings->statusBarSensorCount; i++)
-      free(this->settings->statusBarSensors[i].id);
-   free(this->settings->statusBarSensors);
-
-   this->settings->statusBarSensors = NULL;
-   this->settings->statusBarSensorCount = 0;
-   this->settings->statusBarSensorsConfigured = true;
+   StatusBarSensorConfig* newSensors = NULL;
 
    if (size > 0) {
-      this->settings->statusBarSensors = xCalloc((size_t)size, sizeof(StatusBarSensorConfig));
-      this->settings->statusBarSensorCount = (size_t)size;
+      newSensors = xCalloc((size_t)size, sizeof(StatusBarSensorConfig));
 
       for (int i = 0; i < size; i++) {
          const StatusBarSensorListItem* item = (const StatusBarSensorListItem*) Panel_get(super, i);
-         StatusBarSensorConfig* config = &this->settings->statusBarSensors[i];
+         StatusBarSensorConfig* config = &newSensors[i];
 
          config->id = xStrdup(item->sensorId);
          config->enabled = item->enabled;
@@ -102,6 +94,13 @@ void StatusBarSensorsPanel_update(StatusBarSensorsPanel* this) {
       }
    }
 
+   for (size_t i = 0; i < this->settings->statusBarSensorCount; i++)
+      free(this->settings->statusBarSensors[i].id);
+   free(this->settings->statusBarSensors);
+
+   this->settings->statusBarSensors = newSensors;
+   this->settings->statusBarSensorCount = (size_t)size;
+   this->settings->statusBarSensorsConfigured = true;
    this->settings->changed = true;
    this->settings->lastUpdate++;
 }
