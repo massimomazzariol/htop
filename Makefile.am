@@ -117,6 +117,7 @@ myhtopheaders = \
 	FileDescriptorMeter.h \
 	FunctionBar.h \
 	GPUMeter.h \
+	HardwareSensor.h \
 	Hashtable.h \
 	Header.h \
 	HeaderLayout.h \
@@ -194,6 +195,7 @@ linux_platform_headers = \
 	linux/HugePageMeter.h \
 	linux/IOPriority.h \
 	linux/IOPriorityPanel.h \
+	linux/LibSensorMeter.h \
 	linux/LibSensors.h \
 	linux/LinuxMachine.h \
 	linux/LinuxProcess.h \
@@ -222,6 +224,7 @@ linux_platform_sources = \
 	linux/GPU.c \
 	linux/HugePageMeter.c \
 	linux/IOPriorityPanel.c \
+	linux/LibSensorMeter.c \
 	linux/LibSensors.c \
 	linux/LinuxMachine.c \
 	linux/LinuxProcess.c \

@@ -69,6 +69,8 @@ in the source distribution for its full text.
 #endif
 
 #ifdef HAVE_SENSORS_SENSORS_H
+#include "DynamicMeter.h"
+#include "LibSensorMeter.h"
 #include "LibSensors.h"
 #endif
 
@@ -245,6 +247,9 @@ const MeterClass* const Platform_meterTypes[] = {
    &SecondsUptimeMeter_class,
    &BatteryMeter_class,
    &HostnameMeter_class,
+#ifdef HAVE_SENSORS_SENSORS_H
+   &DynamicMeter_class,
+#endif
    &AllCPUsMeter_class,
    &AllCPUs2Meter_class,
    &AllCPUs4Meter_class,
@@ -1127,6 +1132,28 @@ static int dropCapabilities(enum CapMode mode) {
    cap_free(caps);
 
    return 0;
+}
+#endif
+
+#ifdef HAVE_SENSORS_SENSORS_H
+Hashtable* Platform_dynamicMeters(void) {
+   return LibSensorMeter_new();
+}
+
+void Platform_dynamicMetersDone(Hashtable* table) {
+   LibSensorMeter_done(table);
+}
+
+void Platform_dynamicMeterInit(Meter* meter) {
+   LibSensorMeter_init(meter);
+}
+
+void Platform_dynamicMeterUpdateValues(Meter* meter) {
+   LibSensorMeter_updateValues(meter);
+}
+
+void Platform_dynamicMeterDisplay(const Meter* meter, RichString* out) {
+   LibSensorMeter_display(meter, out);
 }
 #endif
 
