@@ -195,8 +195,8 @@ linux_platform_headers = \
 	linux/HugePageMeter.h \
 	linux/IOPriority.h \
 	linux/IOPriorityPanel.h \
-	linux/LibSensorMeter.h \
 	linux/LibSensors.h \
+	linux/LibSensorsMeter.h \
 	linux/LinuxMachine.h \
 	linux/LinuxProcess.h \
 	linux/LinuxProcessTable.h \
@@ -224,8 +224,8 @@ linux_platform_sources = \
 	linux/GPU.c \
 	linux/HugePageMeter.c \
 	linux/IOPriorityPanel.c \
-	linux/LibSensorMeter.c \
 	linux/LibSensors.c \
+	linux/LibSensorsMeter.c \
 	linux/LinuxMachine.c \
 	linux/LinuxProcess.c \
 	linux/LinuxProcessTable.c \

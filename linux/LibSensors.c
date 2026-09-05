@@ -157,11 +157,11 @@ static char* LibSensors_makeSensorId(const sensors_chip_name* chip, const sensor
 
    const size_t chipNameLength = (size_t)chipLength;
    const size_t featureNameLength = strlen(feature->name);
-   char* id = xMalloc(chipNameLength + featureNameLength + 2);
+   char* id = xCalloc(chipNameLength + featureNameLength + 2, 1);
 
    sym_sensors_snprintf_chip_name(id, chipNameLength + 1, chip);
    id[chipNameLength] = ':';
-   memcpy(id + chipNameLength + 1, feature->name, featureNameLength + 1);
+   memcpy(id + chipNameLength + 1, feature->name, featureNameLength);
 
    return id;
 }
@@ -310,6 +310,7 @@ bool LibSensors_updateHardwareSensors(HardwareSensor* sensors, size_t count) {
             sensor->min = value;
          if (value > sensor->max)
             sensor->max = value;
+
          sensor->sampleCount++;
          sensor->average += (value - sensor->average) / (double)sensor->sampleCount;
       }

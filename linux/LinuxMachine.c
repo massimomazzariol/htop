@@ -34,8 +34,8 @@ in the source distribution for its full text.
 #include "linux/Platform.h" // needed for GNU/hurd to get PATH_MAX  // IWYU pragma: keep
 
 #ifdef HAVE_SENSORS_SENSORS_H
-#include "LibSensorMeter.h"
 #include "LibSensors.h"
+#include "LibSensorsMeter.h"
 #endif
 
 #ifndef O_PATH
@@ -890,13 +890,13 @@ void Machine_scan(Machine* super) {
    )
       LinuxMachine_scanCPUFrequency(this);
 
-   #ifdef HAVE_SENSORS_SENSORS_H
-   if (LibSensorMeter_consumeSamplingRequest())
+#ifdef HAVE_SENSORS_SENSORS_H
+   if (LibSensorsMeter_consumeSamplingRequest())
       LinuxMachine_updateHardwareSensors(this);
 
    if (settings->showCPUTemperature)
       LibSensors_getCPUTemperatures(this->cpuData, super->existingCPUs, super->activeCPUs);
-   #endif
+#endif
 }
 
 Machine* Machine_new(UsersTable* usersTable, uid_t userId) {
@@ -944,10 +944,10 @@ Machine* Machine_new(UsersTable* usersTable, uid_t userId) {
    // Fetch CPU topology
    int ccds = 0;
    LinuxMachine_fetchCPUTopologyFromCPUinfo(this);
-   #ifdef HAVE_SENSORS_SENSORS_H
+#ifdef HAVE_SENSORS_SENSORS_H
    this->sensors = LibSensors_getHardwareSensors(&this->sensorCount);
    ccds = LibSensors_countCCDs();
-   #endif
+#endif
    LinuxMachine_assignCCDs(this, ccds);
    LinuxMachine_computeThreadIndices(this);
 

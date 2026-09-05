@@ -1,5 +1,5 @@
 /*
-htop - linux/LibSensorMeter.c
+htop - linux/LibSensorsMeter.c
 (C) 2026 Massimo Mazzariol
 Released under the GNU GPLv2+, see the COPYING file
 in the source distribution for its full text.
@@ -7,16 +7,19 @@ in the source distribution for its full text.
 
 #include "config.h" // IWYU pragma: keep
 
-#include "linux/LibSensorMeter.h"
+#include "linux/LibSensorsMeter.h"
 
 #ifdef HAVE_SENSORS_SENSORS_H
 
+#include <errno.h>
+#include <fcntl.h>
 #include <pwd.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "CRT.h"
 #include "DynamicMeter.h"
@@ -27,14 +30,15 @@ in the source distribution for its full text.
 #include "linux/LibSensors.h"
 #include "linux/LinuxMachine.h"
 
-static bool hardwareSensorSamplingRequested = false;
-static size_t hardwareSensorVisibleLabelWidth = 0;
-static uint64_t hardwareSensorLayoutVersion = 0;
+
+static bool lsm_samplingRequested = false;
+static size_t lsm_labelWidth = 0;
+static uint64_t lsm_layoutVersion = 0;
 
 static const size_t dynamicMeterNameMax = 29;
 static const size_t sensorDisplayLabelMax = 31; /* Meter_toListItem() uses char name[32]. */
 
-static char* LibSensorMeter_getUserLabelOverridePath(void) {
+static char* LibSensorsMeter_getUserLabelOverridePath(void) {
    const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
    if (xdgConfigHome && xdgConfigHome[0] == '/')
       return String_cat(xdgConfigHome, "/htop/sensor-labels.conf");
@@ -48,13 +52,29 @@ static char* LibSensorMeter_getUserLabelOverridePath(void) {
    return home ? String_cat(home, CONFIGDIR "/htop/sensor-labels.conf") : NULL;
 }
 
-static void LibSensorMeter_applyLabelOverrides(const char* path, HardwareSensor* sensors, size_t sensorCount) {
+static void LibSensorsMeter_applyLabelOverrides(const char* path, HardwareSensor* sensors, size_t sensorCount) {
    if (!path)
       return;
 
-   FILE* file = fopen(path, "r");
-   if (!file)
+   int fd;
+   do {
+      fd = open(path, O_RDONLY | O_NOCTTY | O_NOFOLLOW | O_NONBLOCK);
+   } while (fd < 0 && errno == EINTR);
+
+   if (fd < 0)
       return;
+
+   struct stat sb;
+   if (fstat(fd, &sb) < 0 || !S_ISREG(sb.st_mode)) {
+      close(fd);
+      return;
+   }
+
+   FILE* file = fdopen(fd, "r");
+   if (!file) {
+      close(fd);
+      return;
+   }
 
    for (;;) {
       char* line = String_readLine(file);
@@ -97,7 +117,7 @@ static void LibSensorMeter_applyLabelOverrides(const char* path, HardwareSensor*
    fclose(file);
 }
 
-static const char* LibSensorMeter_labelSourceName(HardwareSensorLabelSource source) {
+static const char* LibSensorsMeter_labelSourceName(HardwareSensorLabelSource source) {
    switch (source) {
       case SENSOR_LABEL_HTOP:
          return "htop label";
@@ -110,32 +130,57 @@ static const char* LibSensorMeter_labelSourceName(HardwareSensorLabelSource sour
    return "fallback";
 }
 
-static const DynamicMeter* LibSensorMeter_lookupDefinition(const Meter* meter) {
+static const DynamicMeter* LibSensorsMeter_lookupDefinition(const Meter* meter) {
    return Hashtable_get(meter->host->settings->dynamicMeters, meter->param);
 }
 
-static size_t LibSensorMeter_displayNameLength(const DynamicMeter* definition) {
+static char* LibSensorsMeter_dupDisplayName(const char* name) {
+   size_t length = strlen(name);
+
+   if (length > sensorDisplayLabelMax) {
+      length = sensorDisplayLabelMax;
+
+      /*
+       * Keep the byte limit required by Meter_toListItem(), but never end
+       * inside a UTF-8 continuation sequence.
+       */
+      while (length > 0 && ((unsigned char)name[length] & 0xc0) == 0x80)
+         length--;
+   }
+
+   return xStrndup(name, length);
+}
+
+static size_t LibSensorsMeter_displayNameWidth(const DynamicMeter* definition) {
    if (!definition || !definition->caption)
       return 0;
 
    const size_t captionLength = strlen(definition->caption);
-   return captionLength >= 2 ? captionLength - 2 : captionLength;
+   const size_t displayNameLength = captionLength >= 2 ? captionLength - 2 : captionLength;
+   if (displayNameLength == 0)
+      return 0;
+
+   RichString_begin(label);
+   int columns = (int)displayNameLength;
+   RichString_appendnWideColumns(&label, 0, definition->caption, displayNameLength, &columns);
+   RichString_delete(&label);
+
+   return (size_t)columns;
 }
 
-static void LibSensorMeter_updateVisibleLabelWidth(const Meter* meter) {
+static void LibSensorsMeter_updateVisibleLabelWidth(const Meter* meter) {
    const Settings* settings = meter->host->settings;
 
-   if (hardwareSensorLayoutVersion != settings->lastUpdate) {
-      hardwareSensorLayoutVersion = settings->lastUpdate;
-      hardwareSensorVisibleLabelWidth = 0;
+   if (lsm_layoutVersion != settings->lastUpdate) {
+      lsm_layoutVersion = settings->lastUpdate;
+      lsm_labelWidth = 0;
    }
 
-   const DynamicMeter* definition = LibSensorMeter_lookupDefinition(meter);
-   hardwareSensorVisibleLabelWidth =
-      MAXIMUM(hardwareSensorVisibleLabelWidth, LibSensorMeter_displayNameLength(definition));
+   const DynamicMeter* definition = LibSensorsMeter_lookupDefinition(meter);
+   lsm_labelWidth = MAXIMUM(lsm_labelWidth, LibSensorsMeter_displayNameWidth(definition));
 }
 
-static const HardwareSensor* LibSensorMeter_lookupSensor(const Meter* meter, const DynamicMeter* definition) {
+static const HardwareSensor* LibSensorsMeter_lookupSensor(const Meter* meter, const DynamicMeter* definition) {
    const LinuxMachine* host = (const LinuxMachine*)meter->host;
 
    if (!definition)
@@ -151,8 +196,9 @@ static const HardwareSensor* LibSensorMeter_lookupSensor(const Meter* meter, con
    return NULL;
 }
 
-static void LibSensorMeter_formatValue(char* buffer, size_t size, const Settings* settings, HardwareSensorType type, double value) {
+static void LibSensorsMeter_formatValue(char* buffer, size_t size, const Settings* settings, HardwareSensorType type, double value) {
    char unit = 'C';
+   buffer[0] = '\0';
 
 #ifdef BUILD_WITH_CPU_TEMP
    if (type == SENSOR_TEMPERATURE && settings->degreeFahrenheit) {
@@ -174,7 +220,7 @@ static void LibSensorMeter_formatValue(char* buffer, size_t size, const Settings
    }
 }
 
-static void LibSensorMeter_appendSeparator(RichString* out) {
+static void LibSensorsMeter_appendSeparator(RichString* out) {
 
 #ifdef HAVE_LIBNCURSESW
    if (CRT_utf8) {
@@ -186,22 +232,22 @@ static void LibSensorMeter_appendSeparator(RichString* out) {
    RichString_appendAscii(out, CRT_colors[METER_TEXT], " | ");
 }
 
-static void LibSensorMeter_appendValue(RichString* out, const Settings* settings, HardwareSensorType type, double value, int attribute) {
+static void LibSensorsMeter_appendValue(RichString* out, const Settings* settings, HardwareSensorType type, double value, int attribute) {
    char buffer[48];
-   LibSensorMeter_formatValue(buffer, sizeof(buffer), settings, type, value);
+   LibSensorsMeter_formatValue(buffer, sizeof(buffer), settings, type, value);
    RichString_appendWide(out, CRT_colors[attribute], buffer);
 }
 
-Hashtable* LibSensorMeter_new(void) {
+Hashtable* LibSensorsMeter_new(void) {
    Hashtable* table = Hashtable_new(0, true);
 
    size_t sensorCount = 0;
    HardwareSensor* sensors = LibSensors_getHardwareSensors(&sensorCount);
 
-   LibSensorMeter_applyLabelOverrides(SYSCONFDIR "/htop/sensor-labels.conf", sensors, sensorCount);
+   LibSensorsMeter_applyLabelOverrides(SYSCONFDIR "/htop/sensor-labels.conf", sensors, sensorCount);
 
-   char* userLabelPath = LibSensorMeter_getUserLabelOverridePath();
-   LibSensorMeter_applyLabelOverrides(userLabelPath, sensors, sensorCount);
+   char* userLabelPath = LibSensorsMeter_getUserLabelOverridePath();
+   LibSensorsMeter_applyLabelOverrides(userLabelPath, sensors, sensorCount);
    free(userLabelPath);
 
    ht_key_t key = 0;
@@ -220,11 +266,11 @@ Hashtable* LibSensorMeter_new(void) {
 
       String_safeStrncpy(meter->name, sensor->id, sizeof(meter->name));
       const char* rawDisplayName = sensor->label ? sensor->label : sensor->id;
-      char* displayName = xStrndup(rawDisplayName, sensorDisplayLabelMax);
+      char* displayName = LibSensorsMeter_dupDisplayName(rawDisplayName);
 
       xAsprintf(&meter->caption, "%s: ", displayName);
-      xAsprintf(&meter->description, "%s [%s] (%s)",
-                displayName, LibSensorMeter_labelSourceName(sensor->labelSource), sensor->id);
+      xAsprintf(&meter->description, "%s (%s: %s)",
+         displayName, LibSensorsMeter_labelSourceName(sensor->labelSource), sensor->id);
       free(displayName);
 
       meter->type = TEXT_METERMODE;
@@ -237,39 +283,38 @@ Hashtable* LibSensorMeter_new(void) {
    return table;
 }
 
-static void LibSensorMeter_freeFields(ATTR_UNUSED ht_key_t key, void* value, ATTR_UNUSED void* data) {
-
+static void LibSensorsMeter_freeFields(ATTR_UNUSED ht_key_t key, void* value, ATTR_UNUSED void* data) {
    DynamicMeter* meter = (DynamicMeter*)value;
 
    free(meter->caption);
    free(meter->description);
 }
 
-void LibSensorMeter_done(Hashtable* table) {
+void LibSensorsMeter_done(Hashtable* table) {
    if (table)
-      Hashtable_foreach(table, LibSensorMeter_freeFields, NULL);
+      Hashtable_foreach(table, LibSensorsMeter_freeFields, NULL);
 }
 
-void LibSensorMeter_init(Meter* meter) {
-   LibSensorMeter_updateVisibleLabelWidth(meter);
-   hardwareSensorSamplingRequested = true;
+void LibSensorsMeter_init(Meter* meter) {
+   LibSensorsMeter_updateVisibleLabelWidth(meter);
+   lsm_samplingRequested = true;
 }
 
-void LibSensorMeter_updateValues(Meter* meter) {
-   LibSensorMeter_updateVisibleLabelWidth(meter);
-   hardwareSensorSamplingRequested = true;
+void LibSensorsMeter_updateValues(Meter* meter) {
+   LibSensorsMeter_updateVisibleLabelWidth(meter);
+   lsm_samplingRequested = true;
    meter->txtBuffer[0] = '\0';
 }
 
-bool LibSensorMeter_consumeSamplingRequest(void) {
-   const bool requested = hardwareSensorSamplingRequested;
-   hardwareSensorSamplingRequested = false;
+bool LibSensorsMeter_consumeSamplingRequest(void) {
+   const bool requested = lsm_samplingRequested;
+   lsm_samplingRequested = false;
    return requested;
 }
 
-void LibSensorMeter_display(const Meter* meter, RichString* out) {
-   const DynamicMeter* definition = LibSensorMeter_lookupDefinition(meter);
-   const HardwareSensor* sensor = LibSensorMeter_lookupSensor(meter, definition);
+void LibSensorsMeter_display(const Meter* meter, RichString* out) {
+   const DynamicMeter* definition = LibSensorsMeter_lookupDefinition(meter);
+   const HardwareSensor* sensor = LibSensorsMeter_lookupSensor(meter, definition);
 
    if (!definition || !sensor) {
       RichString_writeAscii(out, CRT_colors[METER_VALUE_ERROR], "unavailable");
@@ -277,27 +322,24 @@ void LibSensorMeter_display(const Meter* meter, RichString* out) {
    }
 
    const Settings* settings = meter->host->settings;
-   const size_t displayNameLength = LibSensorMeter_displayNameLength(definition);
-   const size_t captionPadding =
-      hardwareSensorVisibleLabelWidth > displayNameLength
-         ? hardwareSensorVisibleLabelWidth - displayNameLength
-         : 0;
+   const size_t displayNameWidth = LibSensorsMeter_displayNameWidth(definition);
+   const size_t captionPadding = lsm_labelWidth > displayNameWidth ? lsm_labelWidth - displayNameWidth : 0;
 
    for (size_t i = 0; i < captionPadding; i++)
       RichString_appendChr(out, CRT_colors[METER_TEXT], ' ', 1);
 
-   LibSensorMeter_appendValue(out, settings, sensor->type, sensor->value, METER_VALUE);
+   LibSensorsMeter_appendValue(out, settings, sensor->type, sensor->value, METER_VALUE);
 
-   LibSensorMeter_appendSeparator(out);
+   LibSensorsMeter_appendSeparator(out);
 
    RichString_appendAscii(out, CRT_colors[METER_TEXT], "min ");
-   LibSensorMeter_appendValue(out, settings, sensor->type, sensor->min, METER_VALUE_OK);
+   LibSensorsMeter_appendValue(out, settings, sensor->type, sensor->min, METER_VALUE_OK);
 
    RichString_appendAscii(out, CRT_colors[METER_TEXT], "   avg ");
-   LibSensorMeter_appendValue(out, settings, sensor->type, sensor->average, METER_VALUE_NOTICE);
+   LibSensorsMeter_appendValue(out, settings, sensor->type, sensor->average, METER_VALUE_NOTICE);
 
    RichString_appendAscii(out, CRT_colors[METER_TEXT], "   max ");
-   LibSensorMeter_appendValue(out, settings, sensor->type, sensor->max, METER_VALUE_WARN);
+   LibSensorsMeter_appendValue(out, settings, sensor->type, sensor->max, METER_VALUE_WARN);
 }
 
 #endif
